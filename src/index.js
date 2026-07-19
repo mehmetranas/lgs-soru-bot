@@ -10,6 +10,7 @@ import {
 import { extractQuestion } from "./vision.js";
 import { uploadPhoto } from "./storage.js";
 import { buildReport } from "./report.js";
+import { startServer } from "./server.js";
 
 const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
 
@@ -91,8 +92,9 @@ bot.on("photo", async (ctx) => {
 
 async function main() {
   await initSchema();
-  await bot.launch();
-  console.log("lgs-soru-bot çalışıyor (long polling)");
+  startServer();
+  bot.launch();
+  console.log("lgs-soru-bot çalışıyor (long polling + API)");
 }
 
 main().catch((err) => {

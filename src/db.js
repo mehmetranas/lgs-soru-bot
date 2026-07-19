@@ -82,3 +82,55 @@ export async function getHistory(chatId) {
   );
   return rows;
 }
+
+export async function listQuestions({ ders, konu } = {}) {
+  const conditions = [];
+  const params = [];
+
+  if (ders) {
+    params.push(ders);
+    conditions.push(`t.ders = $${params.length}`);
+  }
+  if (konu) {
+    params.push(konu);
+    conditions.push(`t.konu = $${params.length}`);
+  }
+
+  const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+
+  const { rows } = await pool.query(
+    `SELECT q.id, t.ders, t.konu, q.ozet, q.foto_url, q.created_at
+     FROM questions q
+     JOIN topics t ON t.id = q.topic_id
+     ${where}
+     ORDER BY q.created_at DESC`,
+    params
+  );
+  return rows;
+}
+
+export async function getQuestionById(id) {
+  const { rows } = await pool.query(
+    `SELECT q.id, t.ders, t.konu, q.ozet, q.foto_url, q.created_at
+     FROM questions q
+     JOIN topics t ON t.id = q.topic_id
+     WHERE q.id = $1`,
+    [id]
+  );
+  return rows[0] ?? null;
+}
+
+export async function getStats() {
+  const { rows } = await pool.query(
+    `SELECT
+       t.ders,
+       t.konu,
+       date_trunc('month', q.created_at) AS month,
+       count(*) AS count
+     FROM questions q
+     JOIN topics t ON t.id = q.topic_id
+     GROUP BY t.ders, t.konu, month
+     ORDER BY month ASC, t.ders, t.konu`
+  );
+  return rows;
+}
