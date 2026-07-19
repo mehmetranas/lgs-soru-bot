@@ -26,7 +26,9 @@ Bu kayıtlara bakarak Türkçe, kısa ve net bir rapor yaz. Şunlara odaklan:
 - Zaman içinde artan veya azalan konular var mı (iyileşme/kötüleşme sinyali)
 - Yeni ortaya çıkan (son dönemde beliren) konu var mı
 
-Rapor bir veli/öğretmenin okuyup hemen aksiyon alabileceği şekilde, madde işaretli ve kısa olsun.`;
+Rapor bir veli/öğretmenin okuyup hemen aksiyon alabileceği şekilde, madde işaretli ve kısa olsun.
+
+Düz metin olarak yaz — hiçbir markdown biçimlendirmesi kullanma (**, ##, _, \` gibi işaretler yasak). Listelerde madde başına sadece "- " kullan, kalın/italik yazı deneme.`;
 
   const response = await axios.post(
     OPENROUTER_URL,
