@@ -1,14 +1,7 @@
 import { Telegraf } from "telegraf";
 import axios from "axios";
-import {
-  initSchema,
-  getRegisteredStudent,
-  registerStudent,
-  findOrCreateTopic,
-  saveQuestion,
-} from "./db.js";
-import { extractQuestion } from "./vision.js";
-import { uploadPhoto } from "./storage.js";
+import { initSchema, getRegisteredStudent, registerStudent } from "./db.js";
+import { intakeQuestion } from "./questionIntake.js";
 import { getOrGenerateReport, reportToPlainText } from "./report.js";
 import { startServer } from "./server.js";
 
@@ -68,18 +61,8 @@ bot.on("photo", async (ctx) => {
     });
     const buffer = Buffer.from(data);
     const mimeType = "image/jpeg";
-    const base64 = buffer.toString("base64");
 
-    const extracted = await extractQuestion(base64, mimeType);
-    const topicId = await findOrCreateTopic(extracted.ders, extracted.konu);
-    const fotoUrl = await uploadPhoto(buffer, mimeType);
-
-    await saveQuestion({
-      chatId,
-      topicId,
-      ozet: extracted.ozet,
-      fotoUrl,
-    });
+    const extracted = await intakeQuestion({ chatId, buffer, mimeType });
 
     await ctx.reply(
       `Kaydedildi:\nDers: ${extracted.ders}\nKonu: ${extracted.konu}\nÖzet: ${extracted.ozet}`

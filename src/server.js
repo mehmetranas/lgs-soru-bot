@@ -1,4 +1,5 @@
 import express from "express";
+import multer from "multer";
 import fs from "fs";
 import {
   listQuestions,
@@ -10,9 +11,15 @@ import {
   getExamStats,
 } from "./db.js";
 import { getOrGenerateReport } from "./report.js";
+import { intakeQuestion } from "./questionIntake.js";
 
 const app = express();
 app.use(express.json());
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 15 * 1024 * 1024 },
+});
 
 function requireApiKey(req, res, next) {
   const key = req.header("x-api-key");
@@ -29,6 +36,34 @@ app.get("/api/questions", requireApiKey, async (req, res) => {
   const questions = await listQuestions({ ders, konu });
   res.json(questions);
 });
+
+app.post(
+  "/api/questions",
+  requireApiKey,
+  upload.single("photo"),
+  async (req, res) => {
+    if (!req.file) {
+      return res.status(400).json({ error: "photo zorunlu" });
+    }
+
+    const chatId = await getRegisteredStudent();
+    if (!chatId) {
+      return res.status(400).json({ error: "henüz kayıtlı öğrenci yok" });
+    }
+
+    try {
+      const extracted = await intakeQuestion({
+        chatId,
+        buffer: req.file.buffer,
+        mimeType: req.file.mimetype || "image/jpeg",
+      });
+      res.json(extracted);
+    } catch (err) {
+      console.error("Panelden soru eklenirken hata:", err);
+      res.status(500).json({ error: "soru işlenemedi" });
+    }
+  }
+);
 
 app.get("/api/questions/:id/photo", requireApiKey, async (req, res) => {
   const question = await getQuestionById(req.params.id);
