@@ -5,10 +5,14 @@ import {
   getQuestionById,
   getStats,
   getRegisteredStudent,
+  createExam,
+  listExams,
+  getExamStats,
 } from "./db.js";
 import { buildReport } from "./report.js";
 
 const app = express();
+app.use(express.json());
 
 function requireApiKey(req, res, next) {
   const key = req.header("x-api-key");
@@ -44,6 +48,32 @@ app.get("/api/report", requireApiKey, async (req, res) => {
   if (!chatId) return res.json({ report: null });
   const report = await buildReport(chatId);
   res.json({ report });
+});
+
+app.get("/api/exams", requireApiKey, async (req, res) => {
+  const exams = await listExams();
+  res.json(exams);
+});
+
+app.get("/api/exams/stats", requireApiKey, async (req, res) => {
+  const stats = await getExamStats();
+  res.json(stats);
+});
+
+app.post("/api/exams", requireApiKey, async (req, res) => {
+  const { denemeAdi, examDate, results } = req.body;
+
+  if (!examDate || !Array.isArray(results) || results.length === 0) {
+    return res.status(400).json({ error: "examDate ve results zorunlu" });
+  }
+
+  const chatId = await getRegisteredStudent();
+  if (!chatId) {
+    return res.status(400).json({ error: "henüz kayıtlı öğrenci yok" });
+  }
+
+  const examId = await createExam({ chatId, denemeAdi, examDate, results });
+  res.json({ id: examId });
 });
 
 export function startServer() {

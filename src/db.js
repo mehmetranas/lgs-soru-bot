@@ -25,6 +25,23 @@ export async function initSchema() {
       foto_url TEXT,
       created_at TIMESTAMPTZ NOT NULL DEFAULT now()
     );
+
+    CREATE TABLE IF NOT EXISTS exams (
+      id SERIAL PRIMARY KEY,
+      chat_id BIGINT NOT NULL REFERENCES students(chat_id),
+      deneme_adi TEXT,
+      exam_date DATE NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+
+    CREATE TABLE IF NOT EXISTS exam_subject_results (
+      id SERIAL PRIMARY KEY,
+      exam_id INTEGER NOT NULL REFERENCES exams(id) ON DELETE CASCADE,
+      ders TEXT NOT NULL,
+      dogru INTEGER NOT NULL DEFAULT 0,
+      yanlis INTEGER NOT NULL DEFAULT 0,
+      bos INTEGER NOT NULL DEFAULT 0
+    );
   `);
 }
 
@@ -118,6 +135,65 @@ export async function getQuestionById(id) {
     [id]
   );
   return rows[0] ?? null;
+}
+
+export async function createExam({ chatId, denemeAdi, examDate, results }) {
+  const { rows } = await pool.query(
+    `INSERT INTO exams (chat_id, deneme_adi, exam_date) VALUES ($1, $2, $3) RETURNING id`,
+    [chatId, denemeAdi || null, examDate]
+  );
+  const examId = rows[0].id;
+
+  for (const r of results) {
+    await pool.query(
+      `INSERT INTO exam_subject_results (exam_id, ders, dogru, yanlis, bos)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [examId, r.ders, r.dogru || 0, r.yanlis || 0, r.bos || 0]
+    );
+  }
+
+  return examId;
+}
+
+export async function listExams() {
+  const { rows } = await pool.query(
+    `SELECT e.id, e.deneme_adi, e.exam_date, e.created_at,
+            r.ders, r.dogru, r.yanlis, r.bos
+     FROM exams e
+     JOIN exam_subject_results r ON r.exam_id = e.id
+     ORDER BY e.exam_date DESC, e.id DESC`
+  );
+
+  const examsById = new Map();
+  for (const row of rows) {
+    if (!examsById.has(row.id)) {
+      examsById.set(row.id, {
+        id: row.id,
+        deneme_adi: row.deneme_adi,
+        exam_date: row.exam_date,
+        created_at: row.created_at,
+        results: [],
+      });
+    }
+    examsById.get(row.id).results.push({
+      ders: row.ders,
+      dogru: row.dogru,
+      yanlis: row.yanlis,
+      bos: row.bos,
+    });
+  }
+
+  return Array.from(examsById.values());
+}
+
+export async function getExamStats() {
+  const { rows } = await pool.query(
+    `SELECT e.exam_date, r.ders, r.dogru, r.yanlis, r.bos
+     FROM exams e
+     JOIN exam_subject_results r ON r.exam_id = e.id
+     ORDER BY e.exam_date ASC`
+  );
+  return rows;
 }
 
 export async function getStats() {
