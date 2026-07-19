@@ -4,6 +4,7 @@ import fs from "fs";
 import {
   listQuestions,
   getQuestionById,
+  deleteQuestion,
   getStats,
   getRegisteredStudent,
   createExam,
@@ -12,6 +13,7 @@ import {
 } from "./db.js";
 import { getOrGenerateReport } from "./report.js";
 import { intakeQuestion } from "./questionIntake.js";
+import { deletePhoto } from "./storage.js";
 
 const app = express();
 app.use(express.json());
@@ -64,6 +66,15 @@ app.post(
     }
   }
 );
+
+app.delete("/api/questions/:id", requireApiKey, async (req, res) => {
+  const deleted = await deleteQuestion(req.params.id);
+  if (!deleted) {
+    return res.status(404).json({ error: "not found" });
+  }
+  await deletePhoto(deleted.foto_url);
+  res.json({ ok: true });
+});
 
 app.get("/api/questions/:id/photo", requireApiKey, async (req, res) => {
   const question = await getQuestionById(req.params.id);

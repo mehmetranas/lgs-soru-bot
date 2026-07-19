@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import { mkdir, writeFile } from "fs/promises";
+import { mkdir, writeFile, unlink } from "fs/promises";
 import path from "path";
 
 const photosDir = process.env.PHOTOS_DIR || "./data/photos";
@@ -11,4 +11,13 @@ export async function uploadPhoto(buffer, mimeType) {
   const filePath = path.join(photosDir, fileName);
   await writeFile(filePath, buffer);
   return filePath;
+}
+
+export async function deletePhoto(filePath) {
+  if (!filePath) return;
+  try {
+    await unlink(filePath);
+  } catch (err) {
+    if (err.code !== "ENOENT") throw err;
+  }
 }

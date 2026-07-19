@@ -143,6 +143,14 @@ export async function getQuestionById(id) {
   return rows[0] ?? null;
 }
 
+export async function deleteQuestion(id) {
+  const { rows } = await pool.query(
+    "DELETE FROM questions WHERE id = $1 RETURNING foto_url",
+    [id]
+  );
+  return rows[0] ?? null;
+}
+
 export async function createExam({ chatId, denemeAdi, examDate, results }) {
   const { rows } = await pool.query(
     `INSERT INTO exams (chat_id, deneme_adi, exam_date) VALUES ($1, $2, $3) RETURNING id`,
