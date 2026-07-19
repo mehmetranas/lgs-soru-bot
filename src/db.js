@@ -42,6 +42,12 @@ export async function initSchema() {
       yanlis INTEGER NOT NULL DEFAULT 0,
       bos INTEGER NOT NULL DEFAULT 0
     );
+
+    CREATE TABLE IF NOT EXISTS reports (
+      chat_id BIGINT PRIMARY KEY REFERENCES students(chat_id),
+      report_text TEXT NOT NULL,
+      generated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
   `);
 }
 
@@ -194,6 +200,25 @@ export async function getExamStats() {
      ORDER BY e.exam_date ASC`
   );
   return rows;
+}
+
+export async function getStoredReport(chatId) {
+  const { rows } = await pool.query(
+    "SELECT report_text, generated_at FROM reports WHERE chat_id = $1",
+    [chatId]
+  );
+  return rows[0] ?? null;
+}
+
+export async function saveReport(chatId, reportText) {
+  const { rows } = await pool.query(
+    `INSERT INTO reports (chat_id, report_text, generated_at)
+     VALUES ($1, $2, now())
+     ON CONFLICT (chat_id) DO UPDATE SET report_text = EXCLUDED.report_text, generated_at = EXCLUDED.generated_at
+     RETURNING generated_at`,
+    [chatId, reportText]
+  );
+  return rows[0].generated_at;
 }
 
 export async function getStats() {

@@ -9,7 +9,7 @@ import {
 } from "./db.js";
 import { extractQuestion } from "./vision.js";
 import { uploadPhoto } from "./storage.js";
-import { buildReport } from "./report.js";
+import { getOrGenerateReport } from "./report.js";
 import { startServer } from "./server.js";
 
 const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
@@ -47,7 +47,7 @@ bot.command("rapor", async (ctx) => {
   }
 
   await ctx.reply("Rapor hazırlanıyor...");
-  const report = await buildReport(chatId);
+  const { report } = await getOrGenerateReport(chatId);
   await ctx.reply(report);
 });
 

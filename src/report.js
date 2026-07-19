@@ -1,7 +1,8 @@
 import axios from "axios";
-import { getHistory } from "./db.js";
+import { getHistory, getStoredReport, saveReport } from "./db.js";
 
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
 export async function buildReport(chatId) {
   const history = await getHistory(chatId);
@@ -45,4 +46,17 @@ Düz metin olarak yaz — hiçbir markdown biçimlendirmesi kullanma (**, ##, _,
   );
 
   return response.data.choices[0].message.content;
+}
+
+export async function getOrGenerateReport(chatId, { force = false } = {}) {
+  if (!force) {
+    const stored = await getStoredReport(chatId);
+    if (stored && Date.now() - new Date(stored.generated_at).getTime() < ONE_DAY_MS) {
+      return { report: stored.report_text, generatedAt: stored.generated_at };
+    }
+  }
+
+  const report = await buildReport(chatId);
+  const generatedAt = await saveReport(chatId, report);
+  return { report, generatedAt };
 }

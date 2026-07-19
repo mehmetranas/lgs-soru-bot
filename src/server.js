@@ -9,7 +9,7 @@ import {
   listExams,
   getExamStats,
 } from "./db.js";
-import { buildReport } from "./report.js";
+import { getOrGenerateReport } from "./report.js";
 
 const app = express();
 app.use(express.json());
@@ -45,9 +45,18 @@ app.get("/api/stats", requireApiKey, async (req, res) => {
 
 app.get("/api/report", requireApiKey, async (req, res) => {
   const chatId = await getRegisteredStudent();
-  if (!chatId) return res.json({ report: null });
-  const report = await buildReport(chatId);
-  res.json({ report });
+  if (!chatId) return res.json({ report: null, generatedAt: null });
+  const result = await getOrGenerateReport(chatId);
+  res.json(result);
+});
+
+app.post("/api/report/refresh", requireApiKey, async (req, res) => {
+  const chatId = await getRegisteredStudent();
+  if (!chatId) {
+    return res.status(400).json({ error: "henüz kayıtlı öğrenci yok" });
+  }
+  const result = await getOrGenerateReport(chatId, { force: true });
+  res.json(result);
 });
 
 app.get("/api/exams", requireApiKey, async (req, res) => {
